@@ -1,0 +1,49 @@
+
+{% extends "base.html" %}
+
+{% block title %}تسجيل الدخول - نظام إدارة المستفيدين{% endblock %}
+
+{% block login_content %}
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2><i class="fas fa-users"></i> نظام إدارة المستفيدين</h2>
+            <p>يرجى تسجيل الدخول للمتابعة</p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'error' if category == 'danger' else category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('routes.login') }}" data-validate>
+            <div class="form-group">
+                <label for="username">اسم المستخدم</label>
+                <input type="text" id="username" name="username" class="form-control" required autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">كلمة المرور</label>
+                <input type="password" id="password" name="password" class="form-control" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                <i class="fas fa-sign-in-alt"></i>
+                تسجيل الدخول
+            </button>
+        </form>
+
+        <div style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 6px; font-size: 0.9rem; color: var(--gray);">
+            <strong>حسابات تجريبية:</strong><br>
+            مدير: admin / admin123<br>
+            مستخدم: user / user123
+        </div>
+    </div>
+</div>
+{% endblock %}

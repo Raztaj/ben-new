@@ -1,0 +1,161 @@
+
+{% extends "base.html" %}
+
+{% block title %}مراجعة التغييرات - نظام إدارة المستفيدين{% endblock %}
+{% block page_title %}مراجعة التغييرات{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i>
+        هنا يمكنك مراجعة جميع طلبات التعديل والحذف المقدمة من المستخدمين
+    </div>
+</div>
+
+{% if pending_changes %}
+<div class="table-container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>نوع التغيير</th>
+                <th>المستفيد</th>
+                <th>طالب التغيير</th>
+                <th>تاريخ الطلب</th>
+                <th>التفاصيل</th>
+                <th>الإجراءات</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for change in pending_changes %}
+            <tr>
+                <td>
+                    {% if change.change_type == 'update' %}
+                        <span class="status-badge status-review">
+                            <i class="fas fa-edit"></i>
+                            تعديل
+                        </span>
+                    {% else %}
+                        <span class="status-badge status-inactive">
+                            <i class="fas fa-trash"></i>
+                            حذف
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    <strong>{{ change.record.full_name }}</strong><br>
+                    <small class="text-muted">{{ change.record.id_passport_number }}</small>
+                </td>
+                <td>{{ change.requester.full_name }}</td>
+                <td>{{ change.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if change.change_type == 'update' %}
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="showChangeDetails({{ change.id }})">
+                            <i class="fas fa-eye"></i>
+                            عرض التغييرات
+                        </button>
+                    {% else %}
+                        طلب حذف السجل
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="action-buttons">
+                        <form method="POST" action="{{ url_for('routes.approve_change', change_id=change.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-primary" data-confirm="هل أنت متأكد من الموافقة على هذا التغيير؟">
+                                <i class="fas fa-check"></i>
+                                موافقة
+                            </button>
+                        </form>
+                        <form method="POST" action="{{ url_for('routes.reject_change', change_id=change.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-sm btn-danger" data-confirm="هل أنت متأكد من رفض هذا التغيير؟">
+                                <i class="fas fa-times"></i>
+                                رفض
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Change Details Modal -->
+<div id="changeDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>تفاصيل التغييرات المطلوبة</h3>
+            <button type="button" class="close">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="changeDetailsContent">
+                <!-- Content will be loaded here by JS -->
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card">
+    <div class="card-body text-center" style="padding: 60px;">
+        <i class="fas fa-clipboard-check" style="font-size: 4rem; color: var(--gray); margin-bottom: 20px;"></i>
+        <h3>لا توجد طلبات معلقة</h3>
+        <p class="text-muted">جميع طلبات التغيير تم مراجعتها</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    const allChangesData = [
+        {% for change in pending_changes if change.change_type == 'update' %}
+        {
+            id: {{ change.id }},
+            changed_data: {{ change.changed_data|tojson|safe }},
+            record: {
+                first_name: '{{ change.record.first_name }}',
+                father_name: '{{ change.record.father_name }}',
+                grandfather_name: '{{ change.record.grandfather_name }}',
+                family_name: '{{ change.record.family_name }}',
+                id_passport_number: '{{ change.record.id_passport_number }}',
+                date_of_birth: '{{ change.record.date_of_birth.strftime("%Y-%m-%d") }}',
+                gender: '{{ change.record.gender }}',
+                marital_status: '{{ change.record.marital_status }}',
+                phone_number: '{{ change.record.phone_number or "" }}',
+                address: `{{ change.record.address or "" }}`,
+                status: '{{ change.record.status }}'
+            }
+        },
+        {% endfor %}
+    ];
+
+    function showChangeDetails(changeId) {
+        const change = allChangesData.find(c => c.id === changeId);
+        if (!change) return;
+
+        const fieldNames = {
+            'first_name': 'الاسم الأول', 'father_name': 'اسم الأب', 'grandfather_name': 'اسم الجد',
+            'family_name': 'اسم العائلة', 'id_passport_number': 'رقم الهوية/جواز السفر',
+            'date_of_birth': 'تاريخ الميلاد', 'gender': 'الجنس', 'marital_status': 'الحالة الاجتماعية',
+            'phone_number': 'رقم الهاتف',
+            'address': 'العنوان', 'status': 'الحالة'
+        };
+
+        let html = '<div class="table-container"><table class="table"><thead><tr><th>الحقل</th><th>القيمة الحالية</th><th>القيمة الجديدة</th></tr></thead><tbody>';
+
+        for (const key in change.changed_data) {
+            // Compare values, converting numbers to strings for comparison
+            if (String(change.changed_data[key]) !== String(change.record[key])) {
+                const displayName = fieldNames[key] || key;
+                const currentValue = change.record[key] || '-';
+                const newValue = change.changed_data[key] || '-';
+                html += `<tr><td><strong>${displayName}</strong></td><td>${currentValue}</td><td style="background: #fef3c7; font-weight: bold;">${newValue}</td></tr>`;
+            }
+        }
+
+        html += '</tbody></table></div>';
+
+        document.getElementById('changeDetailsContent').innerHTML = html;
+        document.getElementById('changeDetailsModal').style.display = 'block';
+    }
+</script>
+{% endblock %}

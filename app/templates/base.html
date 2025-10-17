@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}نظام إدارة المستفيدين{% endblock %}</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Chart.js for reports -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- Scroll Progress Bar -->
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-users"></i> نظام إدارة المستفيدين</h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="javascript:history.back()" class="back-btn">
+                        <i class="fas fa-arrow-left"></i>
+                        رجوع
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('routes.dashboard') }}" class="{% if request.endpoint == 'routes.dashboard' %}active{% endif %}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        لوحة التحكم
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('routes.beneficiaries') }}" class="{% if request.endpoint == 'routes.beneficiaries' %}active{% endif %}">
+                        <i class="fas fa-users"></i>
+                        إدارة المستفيدين
+                    </a>
+                </li>
+                {% if current_user.is_admin() %}
+                <li>
+                    <a href="{{ url_for('routes.review_changes') }}" class="{% if request.endpoint == 'routes.review_changes' %}active{% endif %}">
+                        <i class="fas fa-clipboard-check"></i>
+                        مراجعة التغييرات
+                        {% if pending_changes_count and pending_changes_count > 0 %}
+                        <span class="badge" style="background: var(--danger); color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.7rem; margin-right: 5px;">{{ pending_changes_count }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                {% endif %}
+                <li>
+                    <a href="{{ url_for('routes.reports') }}" class="{% if request.endpoint == 'routes.reports' %}active{% endif %}">
+                        <i class="fas fa-chart-bar"></i>
+                        التقارير
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('routes.import_export') }}" class="{% if request.endpoint == 'routes.import_export' %}active{% endif %}">
+                        <i class="fas fa-file-excel"></i>
+                        استيراد وتصدير
+                    </a>
+                </li>
+                {% if current_user.is_admin() %}
+                <li>
+                    <a href="{{ url_for('routes.settings') }}" class="{% if request.endpoint == 'routes.settings' %}active{% endif %}">
+                        <i class="fas fa-cog"></i>
+                        إعدادات النظام
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            <div class="sidebar-footer">
+                <a href="{{ url_for('routes.logout') }}" class="logout-btn-sidebar">
+                    <i class="fas fa-sign-out-alt"></i>
+                    تسجيل الخروج
+                </a>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-content">
+                    <div class="d-flex align-items-center">
+                        <button class="sidebar-toggle-btn" id="sidebar-toggle"><i class="fas fa-bars"></i></button>
+                        <h1>{% block page_title %}{% endblock %}</h1>
+                    </div>
+                    <div class="user-info">
+                        <button id="theme-toggle" class="theme-toggle-btn" title="تبديل الوضع">
+                            <i class="fas fa-moon"></i>
+                        </button>
+                        <span>مرحباً، {{ current_user.full_name }}</span>
+                        <span class="user-role">({{ 'مدير' if current_user.is_admin() else 'مستخدم' }})</span>
+                        <a href="{{ url_for('routes.logout') }}" class="logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            تسجيل الخروج
+                        </a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <main class="content">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container"></div>
+
+    <!-- Back to Top Button -->
+    <button id="backToTopBtn" class="back-to-top" title="العودة للأعلى">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+
+    <!-- Guided Tour Markup -->
+    <div id="tour-overlay" class="tour-overlay"></div>
+    <div id="tour-popup" class="tour-popup">
+        <div id="tour-content">
+            <h3 id="tour-title"></h3>
+            <p id="tour-description"></p>
+        </div>
+        <div class="tour-navigation">
+            <button id="tour-prev" class="btn btn-secondary">السابق</button>
+            <button id="tour-next" class="btn btn-primary">التالي</button>
+            <button id="tour-end" class="btn btn-danger">إنهاء الجولة</button>
+        </div>
+    </div>
+    {% else %}
+        {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- Script to pass flashed messages to JavaScript -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    const flashed_messages = [
+                        {% for category, message in messages %}
+                            {
+                                "message": `{{ message|safe }}`,
+                                "category": "{{ 'error' if category == 'danger' else category }}"
+                            },
+                        {% endfor %}
+                    ];
+                    if (window.BeneficiarySystem && window.BeneficiarySystem.showFlashedToasts) {
+                        window.BeneficiarySystem.showFlashedToasts(flashed_messages);
+                    }
+                });
+            </script>
+        {% endif %}
+    {% endwith %}
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>
