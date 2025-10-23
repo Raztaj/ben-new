@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}إضافة مستفيد جديد - نظام إدارة المستفيدين{% endblock %}
+{% block page_title %}إضافة مستفيد جديد{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <form method="POST" action="{{ url_for('routes.add_single_beneficiary') }}" data-validate>
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="first_name">الاسم الأول</label>
+                    <input type="text" id="first_name" name="first_name" class="form-control" required>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="father_name">اسم الأب</label>
+                    <input type="text" id="father_name" name="father_name" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="grandfather_name">اسم الجد</label>
+                    <input type="text" id="grandfather_name" name="grandfather_name" class="form-control" required>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="family_name">اسم العائلة</label>
+                    <input type="text" id="family_name" name="family_name" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="id_passport_number">رقم الهوية/جواز السفر</label>
+                    <input type="text" id="id_passport_number" name="id_passport_number" class="form-control" required>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="date_of_birth">تاريخ الميلاد</label>
+                    <input type="date" id="date_of_birth" name="date_of_birth" class="form-control" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="gender">الجنس</label>
+                    <select id="gender" name="gender" class="form-control" required>
+                        <option value="">اختر الجنس</option>
+                        <option value="ذكر">ذكر</option>
+                        <option value="أنثى">أنثى</option>
+                    </select>
+                </div>
+
+                <div class="form-group col-md-6">
+                    <label for="marital_status">الحالة الاجتماعية</label>
+                    <select id="marital_status" name="marital_status" class="form-control" required>
+                        <option value="">اختر الحالة الاجتماعية</option>
+                        <option value="أعزب">أعزب</option>
+                        <option value="متزوج">متزوج</option>
+                        <option value="أرمل">أرمل</option>
+                        <option value="مطلق">مطلق</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group col-md-6">
+                    <label for="phone_number">رقم الهاتف</label>
+                    <input type="tel" id="phone_number" name="phone_number" class="form-control" placeholder="05xxxxxxxx">
+                </div>
+
+            </div>
+
+            <div class="form-group">
+                <label for="address">العنوان</label>
+                <textarea id="address" name="address" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="status">الحالة</label>
+                <select id="status" name="status" class="form-control" required>
+                    <option value="مكتمل">مكتمل</option>
+                    <option value="بحاجة لمراجعة" selected>بحاجة لمراجعة</option>
+                    <option value="غير نشط">غير نشط</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="head_of_household_id">رب الأسرة (اختياري)</label>
+                <select id="head_of_household_id" name="head_of_household_id" class="form-control">
+                    <option value="">-- لا يوجد (هذا المستفيد هو رب أسرة مستقل) --</option>
+                    {% for potential_head in potential_heads_of_household %}
+                        <option value="{{ potential_head.id }}" {% if existing_record and existing_record.head_of_household_id == potential_head.id %}selected{% endif %}>
+                            {{ potential_head.full_name }} ({{ potential_head.id_passport_number }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group text-center">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    حفظ المستفيد
+                </button>
+                <a href="{{ url_for('routes.beneficiaries') }}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i>
+                    إلغاء
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

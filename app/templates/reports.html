@@ -1,0 +1,160 @@
+
+{% extends "base.html" %}
+
+{% block title %}التقارير - نظام إدارة المستفيدين{% endblock %}
+{% block page_title %}التقارير والإحصائيات{% endblock %}
+
+{% block content %}
+<!-- Export Buttons -->
+<div class="mb-3">
+    <a href="{{ url_for('routes.export_records', type='all') }}" class="btn btn-primary">
+        <i class="fas fa-file-excel"></i>
+        تصدير جميع البيانات
+    </a>
+</div>
+
+<!-- Charts Grid -->
+<div class="stats-grid">
+    <!-- Gender Distribution -->
+    <div class="chart-container">
+        <h3 class="chart-title">توزيع المستفيدين حسب الجنس</h3>
+        <canvas id="genderChart"></canvas>
+    </div>
+
+    <!-- Marital Status Distribution -->
+    <div class="chart-container">
+        <h3 class="chart-title">توزيع المستفيدين حسب الحالة الاجتماعية</h3>
+        <canvas id="maritalChart"></canvas>
+    </div>
+
+    <!-- Status Distribution -->
+    <div class="chart-container">
+        <h3 class="chart-title">توزيع المستفيدين حسب الحالة</h3>
+        <canvas id="statusChart"></canvas>
+    </div>
+
+    <!-- Age Groups -->
+    <div class="chart-container">
+        <h3 class="chart-title">توزيع المستفيدين حسب الأعمار</h3>
+        <canvas id="ageChart"></canvas>
+    </div>
+</div>
+
+<!-- Monthly Growth Chart -->
+<div class="chart-container">
+    <h3 class="chart-title">نمو عدد المستفيدين الشهري</h3>
+    <canvas id="growthChart"></canvas>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart.js Configuration
+    Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    Chart.defaults.font.size = 12;
+
+    // Color palette
+    const colors = {
+        primary: '#00774a',
+        secondary: '#e60026',
+        warning: '#f59e0b',
+        info: '#0e7490',
+        success: '#059669',
+        danger: '#dc2626'
+    };
+
+    // Reports data from backend
+    const reportsData = {{ reports_data|tojson|safe }};
+
+    // Gender Distribution Chart
+    const genderCtx = document.getElementById('genderChart').getContext('2d');
+    new Chart(genderCtx, {
+        type: 'pie',
+        data: {
+            labels: reportsData.gender.map(item => item.label),
+            datasets: [{
+                data: reportsData.gender.map(item => item.value),
+                backgroundColor: [colors.primary, colors.secondary],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } } }
+    });
+
+    // Marital Status Chart
+    const maritalCtx = document.getElementById('maritalChart').getContext('2d');
+    new Chart(maritalCtx, {
+        type: 'bar',
+        data: {
+            labels: reportsData.marital_status.map(item => item.label),
+            datasets: [{
+                label: 'عدد المستفيدين',
+                data: reportsData.marital_status.map(item => item.value),
+                backgroundColor: colors.info,
+                borderColor: colors.info,
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+
+    // Status Distribution Chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: reportsData.status.map(item => item.label),
+            datasets: [{
+                data: reportsData.status.map(item => item.value),
+                backgroundColor: [colors.success, colors.warning, colors.danger],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } } }
+    });
+
+    // Age Groups Chart
+    const ageCtx = document.getElementById('ageChart').getContext('2d');
+    new Chart(ageCtx, {
+        type: 'bar',
+        data: {
+            labels: reportsData.age_groups.map(item => item.label),
+            datasets: [{
+                label: 'عدد المستفيدين',
+                data: reportsData.age_groups.map(item => item.value),
+                backgroundColor: colors.secondary,
+                borderColor: colors.secondary,
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+    });
+
+    // Monthly Growth Chart
+    const growthCtx = document.getElementById('growthChart').getContext('2d');
+    new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: reportsData.monthly_growth.map(item => item.label),
+            datasets: [{
+                label: 'مستفيدين جدد',
+                data: reportsData.monthly_growth.map(item => item.value),
+                borderColor: colors.primary,
+                backgroundColor: colors.primary + '20',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: colors.primary,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } }, x: { grid: { display: false } } } }
+    });
+});
+</script>
+{% endblock %}

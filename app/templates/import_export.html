@@ -1,0 +1,336 @@
+
+{% extends "base.html" %}
+
+{% block title %}استيراد وتصدير - نظام إدارة المستفيدين{% endblock %}
+{% block page_title %}استيراد وتصدير البيانات{% endblock %}
+
+{% block content %}
+<div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+    <!-- Import Section -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-file-import"></i>
+            استيراد البيانات
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h4>خطوات الاستيراد:</h4>
+                <ol style="padding-right: 20px; color: var(--gray);">
+                    <li>تحميل نموذج Excel</li>
+                    <li>ملء البيانات في النموذج</li>
+                    <li>رفع الملف المكتمل</li>
+                    <li>اختيار الحالة الافتراضية</li>
+                </ol>
+            </div>
+
+            <!-- Download Template -->
+            <div class="mb-3">
+                <a href="{{ url_for('routes.download_template') }}" class="btn btn-secondary" style="width: 100%;">
+                    <i class="fas fa-download"></i>
+                    تحميل نموذج Excel
+                </a>
+            </div>
+
+            <!-- Upload Form -->
+            <form method="POST" action="{{ url_for('routes.import_export') }}" enctype="multipart/form-data" data-validate>
+                <div class="form-group">
+                    <label for="import_file">اختر ملف Excel (.xlsx)</label>
+                    <input type="file" id="import_file" name="file" class="form-control" accept=".xlsx" required>
+                    <small class="text-muted">يجب أن يكون الملف من نوع .xlsx</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="default_status">الحالة الافتراضية للسجلات المستوردة</label>
+                    <select id="default_status" name="default_status" class="form-control" required>
+                        <option value="">اختر الحالة الافتراضية</option>
+                        <option value="مكتمل">مكتمل</option>
+                        <option value="بحاجة لمراجعة" selected>بحاجة لمراجعة</option>
+                        <option value="غير نشط">غير نشط</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-upload"></i>
+                    رفع واستيراد البيانات
+                </button>
+            </form>
+
+            <div class="alert alert-info mt-3">
+                <i class="fas fa-info-circle"></i>
+                <strong>ملاحظة:</strong> سيتم تجاهل السجلات التي تحتوي على أخطاء في التنسيق أو بيانات مكررة.
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Section -->
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-file-export"></i>
+            تصدير البيانات
+        </div>
+        <div class="card-body">
+            <div class="mb-3">
+                <h4>خيارات التصدير:</h4>
+                <p class="text-muted">اختر نوع البيانات التي تريد تصديرها</p>
+            </div>
+
+            <!-- Export All Records -->
+            <div class="mb-3">
+                <a href="{{ url_for('routes.export_records', type='all') }}" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-database"></i>
+                    تصدير جميع السجلات
+                </a>
+                <small class="text-muted d-block mt-1">تصدير جميع المستفيدين في النظام</small>
+            </div>
+
+            <!-- Export Filtered Results -->
+            <div class="mb-3">
+                <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="showFilterExportModal()">
+                    <i class="fas fa-filter"></i>
+                    تصدير حسب الفلاتر
+                </button>
+                <small class="text-muted d-block mt-1">تصدير البيانات بناءً على فلاتر محددة</small>
+            </div>
+
+            <!-- Export by Status -->
+            <div class="form-group">
+                <label>تصدير حسب الحالة:</label>
+                <div class="dropdown">
+                    <button class="btn btn-info dropdown-toggle" type="button" style="width: 100%;">
+                        <i class="fas fa-tags"></i>
+                        اختر الحالة للتصدير
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="{{ url_for('routes.export_records', type='filtered', status='مكتمل') }}">
+                            <i class="fas fa-check-circle" style="color: var(--primary);"></i> مكتمل
+                        </a>
+                        <a class="dropdown-item" href="{{ url_for('routes.export_records', type='filtered', status='بحاجة لمراجعة') }}">
+                            <i class="fas fa-exclamation-triangle" style="color: var(--warning);"></i> بحاجة لمراجعة
+                        </a>
+                        <a class="dropdown-item" href="{{ url_for('routes.export_records', type='filtered', status='غير نشط') }}">
+                            <i class="fas fa-times-circle" style="color: var(--danger);"></i> غير نشط
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-success mt-3">
+                <i class="fas fa-file-excel"></i>
+                <strong>تنسيق التصدير:</strong> جميع الملفات سيتم تصديرها بصيغة Excel (.xlsx)
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="stats-grid mt-4">
+    <div class="stat-card">
+        <div class="stat-card-content">
+            <div>
+                <h3 id="totalRecords">-</h3>
+                <p>إجمالي السجلات</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-database"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card secondary">
+        <div class="stat-card-content">
+            <div>
+                <h3 id="completedRecords">-</h3>
+                <p>سجلات مكتملة</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card warning">
+        <div class="stat-card-content">
+            <div>
+                <h3 id="reviewRecords">-</h3>
+                <p>بحاجة لمراجعة</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card danger">
+        <div class="stat-card-content">
+            <div>
+                <h3 id="inactiveRecords">-</h3>
+                <p>غير نشطة</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions Accordion -->
+<div class="accordion-container mt-4">
+    <div class="accordion-item">
+        <button class="accordion-header">
+            <span><i class="fas fa-question-circle"></i> تعليمات مهمة</span>
+            <i class="fas fa-chevron-down accordion-icon"></i>
+        </button>
+        <div class="accordion-content">
+            <div class="form-row">
+                <div class="form-group">
+                    <h5><i class="fas fa-file-import text-primary"></i> الاستيراد</h5>
+                    <ul style="color: var(--gray); padding-right: 20px;">
+                        <li>تأكد من استخدام النموذج الصحيح المحمل من النظام</li>
+                        <li>يجب ملء جميع الحقول المطلوبة (الاسم، رقم الهوية، تاريخ الميلاد)</li>
+                        <li>تأكد من صحة تنسيق التواريخ (YYYY-MM-DD)</li>
+                        <li>أرقام الهوية يجب أن تكون فريدة ولا تحتوي على تكرار</li>
+                        <li>أرقام الهاتف يجب أن تبدأ بـ 05 وتحتوي على 10 أرقام</li>
+                    </ul>
+                </div>
+
+                <div class="form-group">
+                    <h5><i class="fas fa-file-export text-secondary"></i> التصدير</h5>
+                    <ul style="color: var(--gray); padding-right: 20px;">
+                        <li>يمكن تصدير البيانات بعدة أشكال حسب الحاجة</li>
+                        <li>التصدير المفلتر يعتمد على آخر فلاتر مطبقة في صفحة المستفيدين</li>
+                        <li>جميع الملفات المصدرة تحتوي على معلومات كاملة للمستفيدين</li>
+                        <li>يمكن استخدام الملفات المصدرة كنسخ احتياطية</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <strong>تحذير:</strong> عملية الاستيراد لا يمكن التراجع عنها. تأكد من صحة البيانات قبل الرفع.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Export Modal -->
+<div id="filterExportModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>تصدير مخصص</h3>
+            <button type="button" class="close">×</button>
+        </div>
+        <div class="modal-body">
+            <form id="filterExportForm" method="GET" action="{{ url_for('routes.export_records') }}">
+                <input type="hidden" name="type" value="filtered">
+
+                <div class="form-group">
+                    <label for="export_status">الحالة</label>
+                    <select id="export_status" name="status" class="form-control">
+                        <option value="">جميع الحالات</option>
+                        <option value="مكتمل">مكتمل</option>
+                        <option value="بحاجة لمراجعة">بحاجة لمراجعة</option>
+                        <option value="غير نشط">غير نشط</option>
+                    </select>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="export_start_date">من تاريخ</label>
+                        <input type="date" id="export_start_date" name="start_date" class="form-control">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="export_end_date">إلى تاريخ</label>
+                        <input type="date" id="export_end_date" name="end_date" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="export_search">البحث</label>
+                    <input type="text" id="export_search" name="search" class="form-control" placeholder="البحث في الأسماء أو أرقام الهوية">
+                </div>
+
+                <div class="form-group text-center">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-excel"></i>
+                        تصدير البيانات المفلترة
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-modal-close>
+                        <i class="fas fa-times"></i>
+                        إلغاء
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Load statistics on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStatistics();
+});
+
+function loadStatistics() {
+    fetch("{{ url_for('routes.api_statistics') }}")
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('totalRecords').textContent = data.total || '-';
+            document.getElementById('completedRecords').textContent = data.completed || '-';
+            document.getElementById('reviewRecords').textContent = data.review || '-';
+            document.getElementById('inactiveRecords').textContent = data.inactive || '-';
+        })
+        .catch(error => {
+            console.error('Error loading statistics:', error);
+        });
+}
+
+function showFilterExportModal() {
+    const modal = document.getElementById('filterExportModal');
+    if (modal) {
+        modal.style.display = 'block';
+    }
+}
+
+// File input validation
+const importFile = document.getElementById('import_file');
+if (importFile) {
+    importFile.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            if (!file.name.toLowerCase().endsWith('.xlsx')) {
+                alert('يرجى اختيار ملف Excel بصيغة .xlsx');
+                e.target.value = '';
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) { // 10MB limit
+                alert('حجم الملف كبير جداً. الحد الأقصى 10 ميجابايت');
+                e.target.value = '';
+            }
+        }
+    });
+}
+
+// Form submission with loading state
+const importForm = document.querySelector('form[action*="import_export"]');
+if (importForm) {
+    importForm.addEventListener('submit', function(e) {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الاستيراد...';
+
+        // Fallback to re-enable button after 30 seconds
+        setTimeout(() => {
+            if (submitBtn.disabled) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }, 30000);
+    });
+}
+</script>
+{% endblock %}

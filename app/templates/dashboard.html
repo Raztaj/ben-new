@@ -1,0 +1,169 @@
+
+{% extends "base.html" %}
+
+{% block title %}لوحة التحكم - نظام إدارة المستفيدين{% endblock %}
+{% block page_title %}لوحة التحكم{% endblock %}
+
+{% block content %}
+<!-- Statistics Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-card-content">
+            <div>
+                <h3>{{ stats.total_beneficiaries }}</h3>
+                <p>إجمالي المستفيدين</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-users"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card secondary">
+        <div class="stat-card-content">
+            <div>
+                <h3>{{ stats.new_this_month }}</h3>
+                <p>مستفيدين جدد هذا الشهر</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-user-plus"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card warning">
+        <div class="stat-card-content">
+            <div>
+                <h3>{{ stats.needs_review }}</h3>
+                <p>بحاجة لمراجعة</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="stat-card danger">
+        <div class="stat-card-content">
+            <div>
+                <h3>{{ stats.inactive_records }}</h3>
+                <p>سجلات غير نشطة</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-user-times"></i>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_admin() and stats.pending_changes_count > 0 %}
+    <div class="stat-card info">
+        <div class="stat-card-content">
+            <div>
+                <h3>{{ stats.pending_changes_count }}</h3>
+                <p>طلبات معلقة</p>
+            </div>
+            <div class="icon">
+                <i class="fas fa-clock"></i>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Global Search -->
+<div class="search-section">
+    <div class="card">
+        <div class="card-header">
+            <i class="fas fa-search"></i>
+            البحث السريع
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('routes.beneficiaries') }}">
+                <div class="search-bar">
+                    <input type="text" name="search" class="search-input" placeholder="ابحث عن مستفيد بالاسم، رقم الهوية، أو رقم الهاتف..." autocomplete="off">
+                    <button type="submit">
+                        <i class="fas fa-search"></i>
+                        بحث
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-history"></i>
+        آخر النشاطات
+    </div>
+    <div class="card-body">
+        {% if recent_beneficiaries %}
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>الاسم الكامل</th>
+                            <th>رقم الهوية</th>
+                            <th>الحالة</th>
+                            <th>تاريخ الإضافة</th>
+                            <th>الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in recent_beneficiaries %}
+                        <tr>
+                            <td>{{ record.full_name }}</td>
+                            <td>{{ record.id_passport_number }}</td>
+                            <td>
+                                <span class="status-badge {% if record.status == 'مكتمل' %}status-completed{% elif record.status == 'بحاجة لمراجعة' %}status-review{% else %}status-inactive{% endif %}">
+                                    {{ record.status }}
+                                </span>
+                            </td>
+                            <td>{{ record.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <a href="{{ url_for('routes.generate_pdf', record_id=record.id) }}" class="action-btn pdf" title="تصدير PDF">
+                                        <i class="fas fa-file-pdf"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="text-center" style="padding: 40px; color: var(--gray);">
+                <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 15px;"></i>
+                <p>لا توجد بيانات حديثة</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="text-center mt-3">
+    <a href="{{ url_for('routes.beneficiaries') }}" class="btn btn-primary">
+        <i class="fas fa-users"></i>
+        عرض جميع المستفيدين
+    </a>
+
+    <a href="{{ url_for('routes.reports') }}" class="btn btn-secondary">
+        <i class="fas fa-chart-bar"></i>
+        عرض التقارير
+    </a>
+
+    <button id="startTourBtn" class="btn btn-info">
+        <i class="fas fa-map-signs"></i>
+        بدء الجولة التعريفية
+    </button>
+
+    {% if current_user.is_admin() and stats.pending_changes_count > 0 %}
+    <a href="{{ url_for('routes.review_changes') }}" class="btn btn-warning">
+        <i class="fas fa-clipboard-check"></i>
+        مراجعة الطلبات المعلقة ({{ stats.pending_changes_count }})
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
