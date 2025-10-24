@@ -176,6 +176,12 @@ def add_single_beneficiary():
                 potential_heads = Record.query.filter(Record.head_of_household_id.is_(None)).order_by(Record.first_name, Record.family_name).all()
                 return render_template('add_single_beneficiary.html', potential_heads_of_household=potential_heads, existing_record=request.form), 400
 
+            # Check for duplicate id_passport_number
+            existing_record = Record.query.filter_by(id_passport_number=request.form['id_passport_number']).first()
+            if existing_record:
+                flash('رقم الهوية/جواز السفر موجود بالفعل.', 'error')
+                potential_heads = Record.query.filter(Record.head_of_household_id.is_(None)).order_by(Record.first_name, Record.family_name).all()
+                return render_template('add_single_beneficiary.html', potential_heads_of_household=potential_heads, existing_record=request.form), 400
 
             record = Record(
                 first_name=request.form['first_name'],
